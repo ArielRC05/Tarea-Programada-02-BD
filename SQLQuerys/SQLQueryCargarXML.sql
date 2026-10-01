@@ -1,7 +1,8 @@
 --Carga de los datos del XML: (el N' signifca que en UNICODE)
 DECLARE @xml XML = N'
+
 <TareaCuentaAhorros>
-    
+
     <!-- catalogos-->
 
     <Tipo_Doc>
@@ -69,15 +70,15 @@ DECLARE @xml XML = N'
             interes="20"/>
     </Tipo_Cuenta_Ahorros>
 
-    <TipoOperaciones>
-        <TipoOperacion Id="1" Nombre="Login"/>
-        <TipoOperacion Id="2" Nombre="Logout"/>
-        <TipoOperacion Id="3" Nombre="Agregar beneficiario"/>
-        <TipoOperacion Id="4" Nombre="Actualizar beneficiario"/>
-        <TipoOperacion Id="5" Nombre="Eliminar beneficiario"/>
-        <TipoOperacion Id="6" Nombre="Actualizar porcentaje de beneficiario"/>
-        <TipoOperacion Id="7" Nombre="Consultar estado de cuenta"/>
-    </TipoOperaciones>
+    <TipoOperacionesBitacora>
+        <TipoOperacion id="1" nombre="Login"/>
+        <TipoOperacion id="2" nombre="Logout"/>
+        <TipoOperacion id="3" nombre="Agregar beneficiario"/>
+        <TipoOperacion id="4" nombre="Actualizar beneficiario"/>
+        <TipoOperacion id="5" nombre="Eliminar beneficiario"/>
+        <TipoOperacion id="6" nombre="Actualizar porcentaje de beneficiario"/>
+        <TipoOperacion id="7" nombre="Consultar estado de cuenta"/>
+    </TipoOperacionesBitacora>
 
     <!-- Entidades no catalogos -->
 
@@ -98,6 +99,14 @@ DECLARE @xml XML = N'
             Email="osadage@gmail.com"
             telefono1="87541766"
             telefono2="24197545"/>
+        <Persona
+            TipoDocuIdentidad="1"
+            Nombre="Franco Quiros Ramirez"
+            ValorDocumentoIdentidad="130004000"
+            FechaNacimiento="1994-10-13"
+            Email="osadage@gmail.com"
+            telefono1="87541766"
+            telefono2="24197545"/>
     </Personas>
 
     <Cuentas>
@@ -114,7 +123,7 @@ DECLARE @xml XML = N'
         <Beneficiario
             NumeroCuenta="11000001"
             ValorDocumentoIdentidadBeneficiario="117370445"
-            ParentezcoId="5"
+            IdParentezco="5"
             Porcentaje="25"/>
     </Beneficiarios>
 
@@ -124,12 +133,13 @@ DECLARE @xml XML = N'
             fechaInicio="2020-10-13"
             fechafin="2020-11-12"
             saldoinicial="1000000.00"
+            saldoMinimo="2000.00"
             saldo_final="1250000.00"/>
     </Estados_de_Cuenta>
 
     <Usuarios>
-        <Usuario User="jaguero" Pass="LaFacil" EsAdministrador="0"/>
-        <Usuario User="fquiros" Pass="MyPass123*" EsAdministrador="1"/>
+        <Usuario User="jaguero" Pass="LaFacil" EsAdministrador="0" ValorDocId="117370445"/>
+        <Usuario User="fquiros" Pass="MyPass123*" EsAdministrador="1" ValorDocId="130004000"/>
     </Usuarios>
 
     <Usuarios_Ver>

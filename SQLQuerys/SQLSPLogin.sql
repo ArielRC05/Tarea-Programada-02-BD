@@ -1,5 +1,5 @@
 --login SP
-CREATE PROCEDURE dbo.Login
+ALTER PROCEDURE dbo.Login
     @inUser VARCHAR(40),
     @inPass VARCHAR(50), --contrasena
     @inIP VARCHAR(45), --el IP del usuario
@@ -26,7 +26,7 @@ BEGIN
         VALUES (@idUsuario, 1, @inIP);
 
         SELECT usuario.Id, --dar el usuario y si es admin
-               usuario.EsAdministrador
+               usuario.flagEsAdministrador
         FROM dbo.Usuario usuario
         WHERE usuario.Id = @idUsuario;
 

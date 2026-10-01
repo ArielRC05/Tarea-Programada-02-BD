@@ -17,7 +17,7 @@ CREATE TABLE dbo.TipoMoneda (
 
 CREATE TABLE dbo.Parentesco (
     Id INT NOT NULL,
-    Nombre VARCHAR(20) NOT NULL,   
+    Nombre VARCHAR(32) NOT NULL,   
     CONSTRAINT Pk_Parentesco PRIMARY KEY (Id),
     CONSTRAINT NombreUnico_Parentesco UNIQUE (Nombre)
 );

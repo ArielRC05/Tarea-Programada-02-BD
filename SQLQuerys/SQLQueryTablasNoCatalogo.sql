@@ -3,8 +3,8 @@
 CREATE TABLE dbo.Persona (
     Id INT IDENTITY(1,1) NOT NULL,
     IdTipoDocuIdentidad INT NOT NULL,
-    ValorDocumentoIdentidad VARCHAR(20) NOT NULL,
-    Nombre VARCHAR(40) NOT NULL,
+    ValorDocumentoIdentidad VARCHAR(32) NOT NULL,
+    Nombre VARCHAR(64) NOT NULL,
     FechaNacimiento DATE NOT NULL, --DATE: almacena la fecha en formato: año-mes-dia 
     Email VARCHAR(100) NOT NULL,
     CONSTRAINT Pk_Persona PRIMARY KEY (Id),
@@ -51,7 +51,7 @@ CREATE TABLE dbo.BenefDeCA (
     IdBeneficiario INT NOT NULL,
     IdParentesco INT NOT NULL,
     Porcentaje INT NOT NULL,
-    Activo BIT NOT NULL DEFAULT 1,--BIT hace de boleano (0,1) para saber si esta activo o no, DEFAULT coloca un valor inicial
+    flagActivo BIT NOT NULL DEFAULT 1,--BIT hace de boleano (0,1) para saber si esta activo o no, DEFAULT coloca un valor inicial
     FechaDesactivacion DATE NULL, --nulo si esta activo
     CONSTRAINT Pk_BenefDeCA PRIMARY KEY (Id),
     CONSTRAINT Fk_BenefDeCACuenta FOREIGN KEY (IdCuenta) REFERENCES dbo.Cuenta (Id),
@@ -69,6 +69,9 @@ CREATE TABLE dbo.EstadoCuenta (
     Intereses DECIMAL(18,2) NOT NULL DEFAULT 0,
     CantRetiros INT NOT NULL DEFAULT 0,
     CantDepositos INT NOT NULL DEFAULT 0,
+    SaldoMinimo DECIMAL(18,2) NOT NULL,
+    CantTransferenciasEntrantes INT NOT NULL DEFAULT 0,
+    CantTransferenciasSalientes INT NOT NULL DEFAULT 0,
     CONSTRAINT Pk_EstadoCuenta PRIMARY KEY (Id),
     CONSTRAINT Fk_EstadoCuentaCuenta FOREIGN KEY (IdCuenta) REFERENCES dbo.Cuenta (Id)
 );
@@ -77,7 +80,7 @@ CREATE TABLE dbo.Usuario (
     Id INT IDENTITY(1,1) NOT NULL,
     NombreUsuario VARCHAR(40) NOT NULL,
     Contrasena VARCHAR(50) NOT NULL,
-    EsAdministrador BIT NOT NULL,
+    flagEsAdministrador BIT NOT NULL,
     CONSTRAINT Pk_Usuario PRIMARY KEY (Id),
     CONSTRAINT Unico_UsuarioNombreUsuario UNIQUE (NombreUsuario)
 );
