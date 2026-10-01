@@ -137,9 +137,10 @@ DECLARE @xml XML = N'
     </Usuarios_Ver>
 </TareaCuentaAhorros>';
 
-DECLARE @resultado INT;
+DECLARE @resultadoCatalogos INT;
+DECLARE @resultadoDatos INT;
 
-EXEC dbo.CargarCatalogos @inXml = @xml;
-EXEC dbo.CargarDatos @inXml = @xml, @outResultCode = @resultado OUTPUT;
+EXEC dbo.CargarCatalogos @inXml = @xml, @outResultCode = @resultadoCatalogos OUTPUT;
+EXEC dbo.CargarDatos @inXml = @xml, @outResultCode = @resultadoDatos OUTPUT;
 
-SELECT @resultado AS CodigoResultado;
+SELECT @resultadoCatalogos AS CodigoCatalogos, @resultadoDatos AS CodigoDatos;
