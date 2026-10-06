@@ -1,38 +1,75 @@
+USE TareaAhorros;
+GO
+
 --login SP
-ALTER PROCEDURE dbo.Login
-    @inUser VARCHAR(40),
-    @inPass VARCHAR(50), --contrasena
-    @inIP VARCHAR(45), --el IP del usuario
-    @outResultCode INT OUTPUT -- codigo del resultado
+--Ejemplo de ejecucion
+--DECLARE @resultCode INT;
+--EXEC dbo.Login
+--     @inUser = 'jaguero'
+--     , @inPass = 'LaFacil'
+--     , @inIP = '192.168.0.10'
+--     , @outResultCode = @resultCode OUTPUT;
+CREATE PROCEDURE dbo.Login
+    @inUser VARCHAR(64)
+    , @inPass VARCHAR(64) --contrasena
+    , @inIP VARCHAR(64) --el IP del usuario
+    , @outResultCode INT OUTPUT --codigo del resultado
 AS
 BEGIN
     SET NOCOUNT ON;
 
     BEGIN TRY
+        DECLARE @idUsuario INT;
+
         SET @outResultCode = 0;
 
-        DECLARE @idUsuario INT;
-        SELECT @idUsuario = usuario.Id 
+        SELECT @idUsuario = usuario.Id
         FROM dbo.Usuario usuario
-        WHERE usuario.NombreUsuario = @inUser AND usuario.Contrasena = @inPass; --nombre y contrasena iguales 
+        WHERE usuario.NombreUsuario = @inUser --nombre y contrasena iguales
+            AND usuario.Contrasena = @inPass;
 
-        IF @idUsuario IS NULL
+        IF (@idUsuario IS NULL)
         BEGIN
             SET @outResultCode = 50002; --error en login
-            RETURN;
+        END
+        ELSE
+        BEGIN
+            INSERT dbo.Bitacora (
+                IdUsuario
+                , IdTipoOperacion
+                , IP
+                , JsonAntes
+                , JsonDespues
+            )
+            SELECT @idUsuario
+                , 1 --1 es login
+                , @inIP
+                , NULL
+                , NULL;
+
+            SELECT usuario.Id --dar el usuario y si es admin
+                , usuario.flagEsAdministrador
+            FROM dbo.Usuario usuario
+            WHERE usuario.Id = @idUsuario;
         END;
-
-        INSERT INTO dbo.Bitacora (IdUsuario, IdTipoOperacion, IP) --registro del login exitoso
-        VALUES (@idUsuario, 1, @inIP);
-
-        SELECT usuario.Id, --dar el usuario y si es admin
-               usuario.flagEsAdministrador
-        FROM dbo.Usuario usuario
-        WHERE usuario.Id = @idUsuario;
-
-    END TRY --Try y Catch es intente hacer x y si sale mal haga y basicamente
+    END TRY
     BEGIN CATCH
-        SET @outResultCode = 50001; --50001 es error al cargar datos
-    END CATCH
+        INSERT dbo.DBErrors (
+            NumeroError
+            , EstadoError
+            , SeveridadError
+            , LineaDeError
+            , ProcedureError
+            , MensajeError
+        )
+        SELECT ERROR_NUMBER()
+            , ERROR_STATE()
+            , ERROR_SEVERITY()
+            , ERROR_LINE()
+            , ERROR_PROCEDURE()
+            , ERROR_MESSAGE();
+
+        SET @outResultCode = 50001; --50001 es error de plataforma
+    END CATCH;
 END;
 GO

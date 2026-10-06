@@ -1,4 +1,6 @@
 --Carga de los datos del XML: (el N' signifca que en UNICODE)
+
+--Carga de los datos del XML: (el N' signifca que en UNICODE)
 DECLARE @xml XML = N'
 
 <TareaCuentaAhorros>
@@ -150,7 +152,13 @@ DECLARE @xml XML = N'
 DECLARE @resultadoCatalogos INT;
 DECLARE @resultadoDatos INT;
 
-EXEC dbo.CargarCatalogos @inXml = @xml, @outResultCode = @resultadoCatalogos OUTPUT;
-EXEC dbo.CargarDatos @inXml = @xml, @outResultCode = @resultadoDatos OUTPUT;
+EXEC dbo.CargarCatalogos
+    @inXml = @xml
+    , @outResultCode = @resultadoCatalogos OUTPUT;
 
-SELECT @resultadoCatalogos AS CodigoCatalogos, @resultadoDatos AS CodigoDatos;
+EXEC dbo.CargarDatos
+    @inXml = @xml
+    , @outResultCode = @resultadoDatos OUTPUT;
+
+SELECT @resultadoCatalogos AS CodigoCatalogos
+    , @resultadoDatos AS CodigoDatos;
