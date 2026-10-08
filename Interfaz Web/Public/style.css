@@ -1,0 +1,86 @@
+:root {
+    --primary-blue: #1a73e8;
+    --hover-blue: #1557b0;
+    --bg-color: #f8f9fa;
+    --border-color: #dadce0;
+    --text-main: #202124;
+    --text-muted: #5f6368;
+    --danger: #d93025;
+    --warning-bg: #fef0db;
+    --warning-text: #ea8600;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    display: flex;
+    justify-content: center;
+    padding: 40px 16px;
+    min-height: 100vh;
+}
+
+.container { width: 100%; max-width: 800px; }
+.hidden { display: none !important; }
+
+/* Tarjetas */
+.card {
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    margin-bottom: 20px;
+}
+
+.card-header {
+    background-color: var(--primary-blue);
+    color: #ffffff;
+    padding: 16px 20px;
+    font-size: 1.25rem;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-body { padding: 24px; }
+
+/* Formularios y Botones */
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; margin-bottom: 6px; font-weight: bold; font-size: 0.9rem; }
+.form-control { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; }
+
+.btn { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+.btn-primary { background-color: var(--primary-blue); color: white; }
+.btn-primary:hover { background-color: var(--hover-blue); }
+.btn-secondary { background-color: #e8eaed; color: var(--text-main); }
+.btn-danger { background-color: var(--danger); color: white; }
+
+.action-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+
+/* Alerta llamativa para el 100% */
+.alert-flashy {
+    background-color: #ffe3e3;
+    color: var(--danger);
+    border: 2px dashed var(--danger);
+    padding: 16px;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+    animation: flash 1.5s infinite alternate;
+}
+
+@keyframes flash {
+    from { opacity: 1; }
+    to { opacity: 0.7; }
+}
+
+/* Tablas */
+table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 0.9rem; }
+th { background-color: #f1f3f4; font-weight: bold; }
+tr.clickable:hover { background-color: #f8f9fa; cursor: pointer; }
