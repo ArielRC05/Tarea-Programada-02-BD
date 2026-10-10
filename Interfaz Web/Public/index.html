@@ -55,14 +55,14 @@
     <!-- VISTA 2: DASHBOARD -->
     <div id="vista-dashboard" class="card hidden">
         <div class="card-header">
-            <span>Bienvenido, Ahorrante</span>
+            <span>Bienvenido al Portal</span>
             <button class="btn btn-secondary" onclick="cerrarSesion()">Cerrar Sesión</button>
         </div>
         <div class="card-body">
-            <p>Seleccione la operación que desea realizar en su cuenta de ahorros:</p>
+            <p>Cuenta activa: <strong id="lbl-cuenta"></strong></p>
             <br>
             <div class="action-bar">
-                <button class="btn btn-primary" onclick="mostrarVista('vista-beneficiarios')">Editar Beneficiarios</button>
+                <button class="btn btn-primary" onclick="mostrarBeneficiarios()">Editar Beneficiarios</button>
                 <button class="btn btn-primary" onclick="cargarEstadosCuenta()">Consultar Estados de Cuenta</button>
             </div>
         </div>
@@ -89,6 +89,7 @@
                 <table>
                     <thead>
                         <tr>
+                            <th>Identificación</th>
                             <th>Nombre</th>
                             <th>Parentesco</th>
                             <th>Porcentaje</th>
@@ -140,7 +141,7 @@
                     </div>
                     <div class="form-group">
                         <label>Valor Documento (Max 32)</label>
-                        <input type="number" id="benef-valordoc" class="form-control">
+                        <input type="text" id="benef-valordoc" class="form-control">
                     </div>
                     <div class="form-group">
                         <label>Email</label>
@@ -192,57 +193,55 @@
 </div>
 
 <script>
-    // --- NAVEGACIÓN BÁSICA Y SESIÓN ---
+    const baseURL = 'http://localhost:3000/api';
+    let usuarioActual = null;
+    let cuentaActual = null;
+    let esUsuarioLocal = false;
+    let listaBeneficiariosCache = [];
+
     const vistas = ['vista-login', 'vista-registro', 'vista-dashboard', 'vista-beneficiarios', 'vista-estados'];
     
     function mostrarVista(idVista) {
         vistas.forEach(v => document.getElementById(v).classList.add('hidden'));
         document.getElementById(idVista).classList.remove('hidden');
-        if(idVista === 'vista-beneficiarios') renderizarBeneficiarios();
     }
 
-    // Función para crear la cuenta y guardarla en el navegador
+    // --- LÓGICA DE REGISTRO LOCAL ---
     function registrarUsuario() {
         const user = document.getElementById('reg-user').value.trim();
         const pass = document.getElementById('reg-pass').value;
         const passConfirm = document.getElementById('reg-pass-confirm').value;
 
-        // Validar que los campos no estén vacíos
         if (!user || !pass || !passConfirm) {
             alert('Por favor complete todos los campos.');
             return;
         }
 
-        // Validar confirmación de contraseña
         if (pass !== passConfirm) {
             alert('Las contraseñas no coinciden. Inténtelo de nuevo.');
             return;
         }
 
-        // Leer usuarios guardados o crear un arreglo vacío si es la primera vez
         let usuariosGuardados = JSON.parse(localStorage.getItem('cuentasAhorro')) || [];
         
-        // Verificar si el usuario ya existe
         if (usuariosGuardados.find(u => u.usuario === user)) {
-            alert('Ese nombre de usuario ya existe. Por favor elija otro.');
+            alert('Ese nombre de usuario ya existe en almacenamiento local.');
             return;
         }
 
-        // Guardar el nuevo usuario en localStorage
         usuariosGuardados.push({ usuario: user, contrasena: pass });
         localStorage.setItem('cuentasAhorro', JSON.stringify(usuariosGuardados));
 
-        alert('¡Cuenta creada exitosamente! Ya puede iniciar sesión.');
+        alert('¡Cuenta local creada exitosamente! Ya puede iniciar sesión.');
         
-        // Limpiar formulario y volver al login
         document.getElementById('reg-user').value = '';
         document.getElementById('reg-pass').value = '';
         document.getElementById('reg-pass-confirm').value = '';
         mostrarVista('vista-login');
     }
 
-    // Validar el login contra las cuentas guardadas
-    function iniciarSesion() {
+    // --- LÓGICA DE SESIÓN (HÍBRIDA) ---
+    async function iniciarSesion() {
         const user = document.getElementById('login-user').value.trim();
         const pass = document.getElementById('login-pass').value;
 
@@ -251,58 +250,112 @@
             return;
         }
 
-        // Cargar las cuentas de localStorage
         let usuariosGuardados = JSON.parse(localStorage.getItem('cuentasAhorro')) || [];
-        
-        // Agregar un usuario "quemado" por si el profe prueba sin crear cuenta primero
-        usuariosGuardados.push({ usuario: 'admin', contrasena: '123' });
+        const localUser = usuariosGuardados.find(u => u.usuario === user && u.contrasena === pass);
 
-        // Buscar si coincide credenciales
-        const accesoValido = usuariosGuardados.find(u => u.usuario === user && u.contrasena === pass);
-
-        if (accesoValido) {
+        if (localUser) {
+            usuarioActual = 'LOCAL';
+            esUsuarioLocal = true;
+            cuentaActual = '00000000 (Prueba Local)';
+            document.getElementById('lbl-cuenta').innerText = cuentaActual;
             mostrarVista('vista-dashboard');
-        } else {
-            alert('Usuario o contraseña incorrectos.');
+            return;
+        }
+
+        try {
+            const res = await fetch(`${baseURL}/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user, pass })
+            });
+            const data = await res.json();
+
+            if (res.ok) {
+                usuarioActual = data.usuario.Id;
+                esUsuarioLocal = false;
+                await cargarCuentasUsuario();
+            } else {
+                alert(data.error || 'Credenciales incorrectas');
+            }
+        } catch (error) {
+            alert('Error de conexión con el servidor.');
+            console.error(error);
+        }
+    }
+
+    async function cargarCuentasUsuario() {
+        try {
+            const res = await fetch(`${baseURL}/cuentas/${usuarioActual}`);
+            const cuentas = await res.json();
+            
+            if (cuentas.length > 0) {
+                cuentaActual = cuentas[0].NumeroCuenta;
+                document.getElementById('lbl-cuenta').innerText = cuentaActual;
+                mostrarVista('vista-dashboard');
+            } else {
+                alert('Este usuario oficial no tiene cuentas asociadas en la Base de Datos.');
+            }
+        } catch (error) {
+            console.error('Error al cargar cuentas:', error);
         }
     }
 
     function cerrarSesion() {
+        usuarioActual = null;
+        cuentaActual = null;
+        esUsuarioLocal = false;
         document.getElementById('login-user').value = '';
         document.getElementById('login-pass').value = '';
         mostrarVista('vista-login');
     }
 
     // --- LÓGICA DE BENEFICIARIOS ---
-    // Datos simulados en memoria
-    let beneficiarios = [
-        { id: 1, nombre: 'Ana Quirós', parentesco: 2, parentescoNom: 'Madre', porcentaje: 50, activo: true },
-        { id: 2, nombre: 'Luis Quirós', parentesco: 5, parentescoNom: 'Hermano', porcentaje: 20, activo: true }
-    ];
+    async function mostrarBeneficiarios() {
+        mostrarVista('vista-beneficiarios');
+        if (esUsuarioLocal) {
+            listaBeneficiariosCache = [];
+            renderizarBeneficiarios();
+        } else {
+            await cargarBeneficiariosBD();
+        }
+    }
+
+    async function cargarBeneficiariosBD() {
+        try {
+            const res = await fetch(`${baseURL}/beneficiarios/${usuarioActual}/${cuentaActual}`);
+            listaBeneficiariosCache = await res.json();
+            renderizarBeneficiarios();
+        } catch (error) {
+            console.error('Error al obtener beneficiarios:', error);
+        }
+    }
 
     function renderizarBeneficiarios() {
         const tbody = document.getElementById('tabla-beneficiarios');
         tbody.innerHTML = '';
         let totalPorcentaje = 0;
-        let activosCount = 0;
+        let activosCount = listaBeneficiariosCache.length;
 
-        beneficiarios.filter(b => b.activo).forEach((b, index) => {
-            totalPorcentaje += Number(b.porcentaje);
-            activosCount++;
+        if (esUsuarioLocal && activosCount === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #5f6368;">Las cuentas locales no pueden interactuar con la Base de Datos real. Use un usuario del XML (ej. jaguero).</td></tr>';
+        }
+
+        listaBeneficiariosCache.forEach(b => {
+            totalPorcentaje += Number(b.Porcentaje);
             tbody.innerHTML += `
                 <tr>
-                    <td>${b.nombre}</td>
-                    <td>${b.parentescoNom}</td>
-                    <td>${b.porcentaje}%</td>
+                    <td>${b.ValorDocumentoIdentidad}</td>
+                    <td>${b.Nombre}</td>
+                    <td>${b.Parentesco}</td>
+                    <td>${b.Porcentaje}%</td>
                     <td>
-                        <button class="btn btn-secondary" onclick="editarBeneficiario(${b.id})">Editar</button>
-                        <button class="btn btn-danger" onclick="eliminarBeneficiario(${b.id})">Eliminar</button>
+                        <button class="btn btn-secondary" onclick="abrirEdicion(${b.IdBenefDeCA})">Editar</button>
+                        <button class="btn btn-danger" onclick="eliminarBeneficiario(${b.IdBenefDeCA})">Eliminar</button>
                     </td>
                 </tr>
             `;
         });
 
-        // Alerta de porcentaje exigida
         const alerta = document.getElementById('alerta-porcentaje');
         if (totalPorcentaje !== 100 && activosCount > 0) {
             alerta.classList.remove('hidden');
@@ -310,8 +363,7 @@
             alerta.classList.add('hidden');
         }
 
-        // Límite de 3 beneficiarios
-        document.getElementById('btn-agregar-benef').disabled = (activosCount >= 3);
+        document.getElementById('btn-agregar-benef').disabled = (activosCount >= 3 || esUsuarioLocal);
     }
 
     function mostrarFormularioBeneficiario() {
@@ -319,10 +371,12 @@
         document.getElementById('form-beneficiarios-container').classList.remove('hidden');
         document.getElementById('form-titulo').innerText = "Agregar Beneficiario";
         document.getElementById('benef-id').value = '';
-        // Limpiar campos
+        
         ['nombre','porcentaje','fecha','valordoc','email','tel1','tel2'].forEach(id => {
             document.getElementById('benef-'+id).value = '';
+            document.getElementById('benef-'+id).disabled = false;
         });
+        document.getElementById('benef-tipodoc').disabled = false;
     }
 
     function ocultarFormularioBeneficiario() {
@@ -330,81 +384,148 @@
         document.getElementById('lista-beneficiarios-container').classList.remove('hidden');
     }
 
-    function editarBeneficiario(id) {
-        const b = beneficiarios.find(x => x.id === id);
+    function abrirEdicion(idBenefDeCA) {
+        const b = listaBeneficiariosCache.find(x => x.IdBenefDeCA === idBenefDeCA);
         mostrarFormularioBeneficiario();
         document.getElementById('form-titulo').innerText = "Actualizar Beneficiario";
-        document.getElementById('benef-id').value = b.id;
-        document.getElementById('benef-nombre').value = b.nombre;
-        document.getElementById('benef-parentesco').value = b.parentesco;
-        document.getElementById('benef-porcentaje').value = b.porcentaje;
-    }
-
-    function guardarBeneficiario() {
-        const id = document.getElementById('benef-id').value;
-        const nombre = document.getElementById('benef-nombre').value;
-        const parentescoSel = document.getElementById('benef-parentesco');
-        const parentescoNom = parentescoSel.options[parentescoSel.selectedIndex].text;
-        const porcentaje = document.getElementById('benef-porcentaje').value;
-
-        if(!nombre || !porcentaje) { alert("Complete campos obligatorios"); return; }
-
-        if (id) {
-            // Actualizar
-            const b = beneficiarios.find(x => x.id == id);
-            b.nombre = nombre;
-            b.parentesco = parentescoSel.value;
-            b.parentescoNom = parentescoNom;
-            b.porcentaje = Number(porcentaje);
-        } else {
-            // Insertar
-            beneficiarios.push({
-                id: Date.now(),
-                nombre: nombre,
-                parentesco: parentescoSel.value,
-                parentescoNom: parentescoNom,
-                porcentaje: Number(porcentaje),
-                activo: true
-            });
-        }
+        document.getElementById('benef-id').value = b.IdBenefDeCA;
+        document.getElementById('benef-nombre').value = b.Nombre;
+        document.getElementById('benef-porcentaje').value = b.Porcentaje;
         
-        ocultarFormularioBeneficiario();
-        renderizarBeneficiarios();
+        ['fecha','valordoc','email','tel1','tel2'].forEach(id => {
+            document.getElementById('benef-'+id).disabled = true;
+        });
+        document.getElementById('benef-tipodoc').disabled = true;
     }
 
-    function eliminarBeneficiario(id) {
+    async function guardarBeneficiario() {
+        if (esUsuarioLocal) return;
+
+        const idBenefDeCA = document.getElementById('benef-id').value;
+        const nombre = document.getElementById('benef-nombre').value.trim();
+        const idParentesco = document.getElementById('benef-parentesco').value;
+        const porcentaje = document.getElementById('benef-porcentaje').value.trim();
+
+        // Validaciones comunes
+        if (!nombre) { alert("El espacio de Nombre no puede quedar vacío."); return; }
+        if (!porcentaje) { alert("El espacio de Porcentaje no puede quedar vacío."); return; }
+
+        // Validaciones adicionales exclusivas para inserción
+        if (!idBenefDeCA) {
+            const fecha = document.getElementById('benef-fecha').value;
+            const valorDoc = document.getElementById('benef-valordoc').value.trim();
+            const email = document.getElementById('benef-email').value.trim();
+            const tel1 = document.getElementById('benef-tel1').value.trim();
+            const tel2 = document.getElementById('benef-tel2').value.trim();
+
+            if (!fecha) { alert("El espacio de Fecha de Nacimiento no puede quedar vacío."); return; }
+            if (!valorDoc) { alert("El espacio de Valor Documento no puede quedar vacío."); return; }
+            if (!email) { alert("El espacio de Email no puede quedar vacío."); return; }
+            if (!tel1) { alert("El espacio de Teléfono 1 no puede quedar vacío."); return; }
+            if (!tel2) { alert("El espacio de Teléfono 2 no puede quedar vacío."); return; }
+        }
+
+        try {
+            if (idBenefDeCA) {
+                // PUT: Actualizar existente
+                await fetch(`${baseURL}/beneficiarios`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        idUsuario: usuarioActual,
+                        numeroCuenta: cuentaActual,
+                        idBenefDeCA: idBenefDeCA,
+                        nombre: nombre,
+                        idParentesco: idParentesco,
+                        porcentaje: porcentaje
+                    })
+                });
+            } else {
+                // POST: Insertar nuevo
+                await fetch(`${baseURL}/beneficiarios`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        idUsuario: usuarioActual,
+                        numeroCuenta: cuentaActual,
+                        idTipoDoc: document.getElementById('benef-tipodoc').value,
+                        valorDoc: document.getElementById('benef-valordoc').value,
+                        nombre: nombre,
+                        fechaNacimiento: document.getElementById('benef-fecha').value,
+                        email: document.getElementById('benef-email').value,
+                        tel1: document.getElementById('benef-tel1').value,
+                        tel2: document.getElementById('benef-tel2').value,
+                        idParentesco: idParentesco,
+                        porcentaje: porcentaje
+                    })
+                });
+            }
+            ocultarFormularioBeneficiario();
+            await cargarBeneficiariosBD();
+        } catch (error) {
+            console.error('Error guardando:', error);
+            alert('Error al guardar el beneficiario.');
+        }
+    }
+
+    async function eliminarBeneficiario(idBenefDeCA) {
+        if (esUsuarioLocal) return;
+
         if(confirm('¿Seguro que desea realizar la eliminación lógica de este beneficiario?')) {
-            const b = beneficiarios.find(x => x.id === id);
-            b.activo = false; // Eliminación lógica
-            renderizarBeneficiarios();
+            try {
+                await fetch(`${baseURL}/beneficiarios`, {
+                    method: 'DELETE',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        idUsuario: usuarioActual,
+                        numeroCuenta: cuentaActual,
+                        idBenefDeCA: idBenefDeCA
+                    })
+                });
+                await cargarBeneficiariosBD();
+            } catch (error) {
+                console.error('Error eliminando:', error);
+            }
         }
     }
 
     // --- LÓGICA DE ESTADOS DE CUENTA ---
-    function cargarEstadosCuenta() {
+    async function cargarEstadosCuenta() {
         mostrarVista('vista-estados');
         const tbody = document.getElementById('tabla-estados');
-        tbody.innerHTML = '';
+
+        if (esUsuarioLocal) {
+            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #5f6368;">Las cuentas locales no poseen estados de cuenta.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = '<tr><td colspan="9">Cargando...</td></tr>';
         
-        // Generar 8 estados de cuenta simulados ordenados por fecha
-        for(let i = 0; i < 8; i++) {
-            let date = new Date();
-            date.setMonth(date.getMonth() - i);
-            let fechaEmision = date.toISOString().split('T')[0];
-            
-            tbody.innerHTML += `
-                <tr class="clickable" onclick="alert('Funcionalidad para TP3: Mostrar movimientos')">
-                    <td>${fechaEmision}</td>
-                    <td>₡1,000,000</td>
-                    <td>₡1,250,000</td>
-                    <td>₡950,000</td>
-                    <td>₡15,000</td>
-                    <td>3</td>
-                    <td>2</td>
-                    <td>5</td>
-                    <td>1</td>
-                </tr>
-            `;
+        try {
+            const res = await fetch(`${baseURL}/estados/${usuarioActual}/${cuentaActual}`);
+            const estados = await res.json();
+            tbody.innerHTML = '';
+
+            estados.forEach(e => {
+                const fecha = new Date(e.FechaFin).toISOString().split('T')[0];
+                // Se removió el evento onclick
+                tbody.innerHTML += `
+                    <tr class="clickable">
+                        <td>${fecha}</td>
+                        <td>₡${e.SaldoInicial}</td>
+                        <td>₡${e.SaldoFinal}</td>
+                        <td>₡${e.SaldoMinimo}</td>
+                        <td>₡${e.Intereses}</td>
+                        <td>${e.CantRetiros}</td>
+                        <td>${e.CantDepositos}</td>
+                        <td>${e.CantTransferenciasEntrantes}</td>
+                        <td>${e.CantTransferenciasSalientes}</td>
+                    </tr>
+                `;
+            });
+        } catch (error) {
+            console.error('Error obteniendo estados:', error);
+            tbody.innerHTML = '<tr><td colspan="9" style="color:red;">Error al cargar datos</td></tr>';
         }
     }
 </script>
