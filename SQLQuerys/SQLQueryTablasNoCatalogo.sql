@@ -78,11 +78,13 @@ CREATE TABLE dbo.EstadoCuenta (
 
 CREATE TABLE dbo.Usuario (
     Id INT IDENTITY(1,1) NOT NULL
+    , IdPersona INT NOT NULL
     , NombreUsuario VARCHAR(64) NOT NULL
     , Contrasena VARCHAR(64) NOT NULL
     , flagEsAdministrador BIT NOT NULL
     , CONSTRAINT Pk_Usuario PRIMARY KEY (Id)
     , CONSTRAINT Unico_UsuarioNombreUsuario UNIQUE (NombreUsuario)
+    , CONSTRAINT Fk_UsuarioPersona FOREIGN KEY (IdPersona) REFERENCES dbo.Persona (Id)
 );
  
 CREATE TABLE dbo.UsuarioPuedeVer (
