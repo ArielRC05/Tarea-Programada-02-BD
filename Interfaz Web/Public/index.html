@@ -1,3 +1,8 @@
+Aquí tienes el archivo **`public/index.html`** actualizado. He eliminado el botón de "Crear Cuenta" de la pantalla de inicio de sesión, y para mantener el código limpio y profesional para tu entrega, también eliminé todo el código HTML de la vista de registro y la función de JavaScript que guardaba usuarios locales, ya que ahora el sistema funcionará 100% con los usuarios reales de la base de datos (como `jaguero`).
+
+Copia y pega este código para reemplazar tu `index.html`:
+
+```html
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -24,30 +29,6 @@
             </div>
             <div class="action-bar">
                 <button class="btn btn-primary" onclick="iniciarSesion()">Ingresar</button>
-                <button class="btn btn-secondary" onclick="mostrarVista('vista-registro')">Crear Cuenta</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- NUEVA VISTA 1.5: REGISTRO -->
-    <div id="vista-registro" class="card hidden">
-        <div class="card-header">Portal Ahorrante - Crear Cuenta</div>
-        <div class="card-body">
-            <div class="form-group">
-                <label>Nuevo Usuario</label>
-                <input type="text" id="reg-user" class="form-control" placeholder="Elija un nombre de usuario">
-            </div>
-            <div class="form-group">
-                <label>Contraseña</label>
-                <input type="password" id="reg-pass" class="form-control" placeholder="Cree una contraseña">
-            </div>
-            <div class="form-group">
-                <label>Confirmar Contraseña</label>
-                <input type="password" id="reg-pass-confirm" class="form-control" placeholder="Repita su contraseña">
-            </div>
-            <div class="action-bar">
-                <button class="btn btn-primary" onclick="registrarUsuario()">Registrarse</button>
-                <button class="btn btn-secondary" onclick="mostrarVista('vista-login')">Volver al Login</button>
             </div>
         </div>
     </div>
@@ -196,69 +177,22 @@
     const baseURL = 'http://localhost:3000/api';
     let usuarioActual = null;
     let cuentaActual = null;
-    let esUsuarioLocal = false;
     let listaBeneficiariosCache = [];
 
-    const vistas = ['vista-login', 'vista-registro', 'vista-dashboard', 'vista-beneficiarios', 'vista-estados'];
+    const vistas = ['vista-login', 'vista-dashboard', 'vista-beneficiarios', 'vista-estados'];
     
     function mostrarVista(idVista) {
         vistas.forEach(v => document.getElementById(v).classList.add('hidden'));
         document.getElementById(idVista).classList.remove('hidden');
     }
 
-    // --- LÓGICA DE REGISTRO LOCAL ---
-    function registrarUsuario() {
-        const user = document.getElementById('reg-user').value.trim();
-        const pass = document.getElementById('reg-pass').value;
-        const passConfirm = document.getElementById('reg-pass-confirm').value;
-
-        if (!user || !pass || !passConfirm) {
-            alert('Por favor complete todos los campos.');
-            return;
-        }
-
-        if (pass !== passConfirm) {
-            alert('Las contraseñas no coinciden. Inténtelo de nuevo.');
-            return;
-        }
-
-        let usuariosGuardados = JSON.parse(localStorage.getItem('cuentasAhorro')) || [];
-        
-        if (usuariosGuardados.find(u => u.usuario === user)) {
-            alert('Ese nombre de usuario ya existe en almacenamiento local.');
-            return;
-        }
-
-        usuariosGuardados.push({ usuario: user, contrasena: pass });
-        localStorage.setItem('cuentasAhorro', JSON.stringify(usuariosGuardados));
-
-        alert('¡Cuenta local creada exitosamente! Ya puede iniciar sesión.');
-        
-        document.getElementById('reg-user').value = '';
-        document.getElementById('reg-pass').value = '';
-        document.getElementById('reg-pass-confirm').value = '';
-        mostrarVista('vista-login');
-    }
-
-    // --- LÓGICA DE SESIÓN (HÍBRIDA) ---
+    // --- LÓGICA DE SESIÓN ---
     async function iniciarSesion() {
         const user = document.getElementById('login-user').value.trim();
         const pass = document.getElementById('login-pass').value;
 
         if (!user || !pass) {
             alert('Ingrese su usuario y contraseña.');
-            return;
-        }
-
-        let usuariosGuardados = JSON.parse(localStorage.getItem('cuentasAhorro')) || [];
-        const localUser = usuariosGuardados.find(u => u.usuario === user && u.contrasena === pass);
-
-        if (localUser) {
-            usuarioActual = 'LOCAL';
-            esUsuarioLocal = true;
-            cuentaActual = '00000000 (Prueba Local)';
-            document.getElementById('lbl-cuenta').innerText = cuentaActual;
-            mostrarVista('vista-dashboard');
             return;
         }
 
@@ -272,7 +206,6 @@
 
             if (res.ok) {
                 usuarioActual = data.usuario.Id;
-                esUsuarioLocal = false;
                 await cargarCuentasUsuario();
             } else {
                 alert(data.error || 'Credenciales incorrectas');
@@ -303,7 +236,6 @@
     function cerrarSesion() {
         usuarioActual = null;
         cuentaActual = null;
-        esUsuarioLocal = false;
         document.getElementById('login-user').value = '';
         document.getElementById('login-pass').value = '';
         mostrarVista('vista-login');
@@ -312,12 +244,7 @@
     // --- LÓGICA DE BENEFICIARIOS ---
     async function mostrarBeneficiarios() {
         mostrarVista('vista-beneficiarios');
-        if (esUsuarioLocal) {
-            listaBeneficiariosCache = [];
-            renderizarBeneficiarios();
-        } else {
-            await cargarBeneficiariosBD();
-        }
+        await cargarBeneficiariosBD();
     }
 
     async function cargarBeneficiariosBD() {
@@ -335,10 +262,6 @@
         tbody.innerHTML = '';
         let totalPorcentaje = 0;
         let activosCount = listaBeneficiariosCache.length;
-
-        if (esUsuarioLocal && activosCount === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: #5f6368;">Las cuentas locales no pueden interactuar con la Base de Datos real. Use un usuario del XML (ej. jaguero).</td></tr>';
-        }
 
         listaBeneficiariosCache.forEach(b => {
             totalPorcentaje += Number(b.Porcentaje);
@@ -365,11 +288,7 @@
     }
 
     function mostrarFormularioBeneficiario() {
-        // Validaciones previas al click
-        if (esUsuarioLocal) {
-            alert("Las cuentas locales de prueba no pueden registrar beneficiarios.");
-            return;
-        }
+        // Validación límite de beneficiarios
         if (listaBeneficiariosCache.length >= 3) {
             alert("Ya alcanzó el límite máximo de 3 beneficiarios para esta cuenta. Para agregar uno nuevo, primero debe eliminar uno existente.");
             return;
@@ -407,8 +326,6 @@
     }
 
     async function guardarBeneficiario() {
-        if (esUsuarioLocal) return;
-
         const idBenefDeCA = document.getElementById('benef-id').value;
         const nombre = document.getElementById('benef-nombre').value.trim();
         const idParentesco = document.getElementById('benef-parentesco').value;
@@ -477,8 +394,6 @@
     }
 
     async function eliminarBeneficiario(idBenefDeCA) {
-        if (esUsuarioLocal) return;
-
         if(confirm('¿Seguro que desea realizar la eliminación lógica de este beneficiario?')) {
             try {
                 await fetch(`${baseURL}/beneficiarios`, {
@@ -501,11 +416,6 @@
     async function cargarEstadosCuenta() {
         mostrarVista('vista-estados');
         const tbody = document.getElementById('tabla-estados');
-
-        if (esUsuarioLocal) {
-            tbody.innerHTML = '<tr><td colspan="9" style="text-align: center; color: #5f6368;">Las cuentas locales no poseen estados de cuenta.</td></tr>';
-            return;
-        }
 
         tbody.innerHTML = '<tr><td colspan="9">Cargando...</td></tr>';
         
