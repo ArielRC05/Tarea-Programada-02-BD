@@ -362,11 +362,19 @@
         } else {
             alerta.classList.add('hidden');
         }
-
-        document.getElementById('btn-agregar-benef').disabled = (activosCount >= 3 || esUsuarioLocal);
     }
 
     function mostrarFormularioBeneficiario() {
+        // Validaciones previas al click
+        if (esUsuarioLocal) {
+            alert("Las cuentas locales de prueba no pueden registrar beneficiarios.");
+            return;
+        }
+        if (listaBeneficiariosCache.length >= 3) {
+            alert("Ya alcanzó el límite máximo de 3 beneficiarios para esta cuenta. Para agregar uno nuevo, primero debe eliminar uno existente.");
+            return;
+        }
+
         document.getElementById('lista-beneficiarios-container').classList.add('hidden');
         document.getElementById('form-beneficiarios-container').classList.remove('hidden');
         document.getElementById('form-titulo').innerText = "Agregar Beneficiario";
@@ -508,7 +516,6 @@
 
             estados.forEach(e => {
                 const fecha = new Date(e.FechaFin).toISOString().split('T')[0];
-                // Se removió el evento onclick
                 tbody.innerHTML += `
                     <tr class="clickable">
                         <td>${fecha}</td>
