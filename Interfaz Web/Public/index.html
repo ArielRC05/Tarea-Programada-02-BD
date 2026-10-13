@@ -282,16 +282,16 @@
         }
     }
 
-    function mostrarFormularioBeneficiario() {
-        // Validación límite de beneficiarios
-        if (listaBeneficiariosCache.length >= 3) {
+    function mostrarFormularioBeneficiario(esEdicion = false) {
+        // Validación límite de beneficiarios SOLO si se está agregando uno nuevo
+        if (!esEdicion && listaBeneficiariosCache.length >= 3) {
             alert("Ya alcanzó el límite máximo de 3 beneficiarios para esta cuenta. Para agregar uno nuevo, primero debe eliminar uno existente.");
             return;
         }
 
         document.getElementById('lista-beneficiarios-container').classList.add('hidden');
         document.getElementById('form-beneficiarios-container').classList.remove('hidden');
-        document.getElementById('form-titulo').innerText = "Agregar Beneficiario";
+        document.getElementById('form-titulo').innerText = esEdicion ? "Actualizar Beneficiario" : "Agregar Beneficiario";
         document.getElementById('benef-id').value = '';
         
         ['nombre','porcentaje','fecha','valordoc','email','tel1','tel2'].forEach(id => {
@@ -308,8 +308,10 @@
 
     function abrirEdicion(idBenefDeCA) {
         const b = listaBeneficiariosCache.find(x => x.IdBenefDeCA === idBenefDeCA);
-        mostrarFormularioBeneficiario();
-        document.getElementById('form-titulo').innerText = "Actualizar Beneficiario";
+        
+        // Le enviamos "true" para indicarle que es una edición y brinque la validación de los 3
+        mostrarFormularioBeneficiario(true); 
+        
         document.getElementById('benef-id').value = b.IdBenefDeCA;
         document.getElementById('benef-nombre').value = b.Nombre;
         document.getElementById('benef-porcentaje').value = b.Porcentaje;
