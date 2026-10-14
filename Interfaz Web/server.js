@@ -9,7 +9,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static('Public')); // Servir los archivos estáticos de la interfaz
 
-// Endpoint 1: Login
+// Endpoint 1: Login (Bitácora TipoOperacion = 1)
 app.post('/api/login', async (req, res) => {
     const { user, pass } = req.body;
     const ip = req.ip || req.connection.remoteAddress;
@@ -32,6 +32,26 @@ app.post('/api/login', async (req, res) => {
         }
     } catch (err) {
         console.error('Error al ejecutar dbo.Login:', err);
+        res.status(500).json({ error: 'Error interno del servidor.' });
+    }
+});
+
+// Endpoint 1.5: Logout (Bitácora TipoOperacion = 2)
+app.post('/api/logout', async (req, res) => {
+    const { idUsuario } = req.body;
+    const ip = req.ip || req.connection.remoteAddress;
+
+    try {
+        const pool = await poolPromise;
+        const result = await pool.request()
+            .input('inIdUsuario', sql.Int, idUsuario)
+            .input('inIP', sql.VarChar(64), ip)
+            .output('outResultCode', sql.Int)
+            .execute('dbo.Logout'); // Llama al SP de Logout
+
+        res.status(200).json({ codigoResultado: result.output.outResultCode });
+    } catch (err) {
+        console.error('Error al ejecutar dbo.Logout:', err);
         res.status(500).json({ error: 'Error interno del servidor.' });
     }
 });
@@ -81,7 +101,7 @@ app.get('/api/beneficiarios/:idUsuario/:numeroCuenta', async (req, res) => {
     }
 });
 
-// Endpoint 4: Insertar Beneficiario
+// Endpoint 4: Insertar Beneficiario (Bitácora TipoOperacion = 3)
 app.post('/api/beneficiarios', async (req, res) => {
     const { idUsuario, numeroCuenta, idTipoDoc, valorDoc, nombre, fechaNacimiento, email, tel1, tel2, idParentesco, porcentaje } = req.body;
     const ip = req.ip || req.connection.remoteAddress;
@@ -111,7 +131,7 @@ app.post('/api/beneficiarios', async (req, res) => {
     }
 });
 
-// Endpoint 5: Editar Beneficiario
+// Endpoint 5: Editar Beneficiario (Bitácora TipoOperacion = 4 y 6)
 app.put('/api/beneficiarios', async (req, res) => {
     const { idUsuario, numeroCuenta, idBenefDeCA, nombre, idParentesco, porcentaje } = req.body;
     const ip = req.ip || req.connection.remoteAddress;
@@ -136,7 +156,7 @@ app.put('/api/beneficiarios', async (req, res) => {
     }
 });
 
-// Endpoint 6: Eliminar Beneficiario (Borrado Lógico)
+// Endpoint 6: Eliminar Beneficiario - Borrado Lógico (Bitácora TipoOperacion = 5)
 app.delete('/api/beneficiarios', async (req, res) => {
     const { idUsuario, numeroCuenta, idBenefDeCA } = req.body;
     const ip = req.ip || req.connection.remoteAddress;
@@ -158,7 +178,7 @@ app.delete('/api/beneficiarios', async (req, res) => {
     }
 });
 
-// Endpoint 7: Listar Estados de Cuenta
+// Endpoint 7: Listar Estados de Cuenta (Bitácora TipoOperacion = 7)
 app.get('/api/estados/:idUsuario/:numeroCuenta', async (req, res) => {
     const { idUsuario, numeroCuenta } = req.params;
     const ip = req.ip || req.connection.remoteAddress;
